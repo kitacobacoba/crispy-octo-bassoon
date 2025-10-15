@@ -1,0 +1,22 @@
+{
+  "maintenanceMode": false,
+  "messages": {
+    "welcome": "*Selamat Datang di ANONYCHAT!* 👋\n\nSebelum mulai, yuk kita sepakati beberapa aturan mainnya:\n\n1.  *No SARA & No Toxic!* Jaga obrolan tetap asik dan saling menghargai.\n2.  *Dilarang Spamming* atau kirim pesan aneh-aneh ya.\n3.  *Privasi itu penting!* Jangan sebarin info pribadi kamu atau orang lain.\n4.  Admin berhak negur atau nge-banned kalau ada yang melanggar.\n\nUdah siap? Yuk cari teman ngobrol baru!",
+    "menu": "Hai *{nickname}*! ✨ Mau ngapain kita hari ini?\n\n*Pilih Aksi Kamu:*\n\n- *!chat*\n  ✨ _Yuk, cari teman ngobrol random!_\n\n- *!stop* / *!skip*\n  👋 _Udahan atau ganti partner chat._\n\n- *!lapor*\n  🚨 _Laporkan pengguna yang nakal._\n\n- *!stiker*\n  🖼️ _Ubah gambar jadi stiker kece._\n\n- *!stikergif*\n  🎬 _Bikin stiker gerak dari video/GIF (Maks 7 dtk)._"
+  },
+  "badwords": [
+    "anjing",
+    "babi",
+    "kontol",
+    "memek",
+    "bangsat",
+    "asu",
+    "bajingan",
+    "icelam",
+    "jembut",
+    "tlol",
+    "ngentot",
+    "gblk",
+    "colmek"
+  ]
+}
