@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnonyChat Pro Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; }
+        ::-webkit-scrollbar-thumb { background: #a5b4fc; }
+
+        /* Sidebar active state */
+        .sidebar-link.active {
+            background-color: #4f46e5;
+            color: #ffffff;
+        }
+        .sidebar-link.active i {
+            color: #ffffff;
+        }
+
+        /* User filter button active state */
+        .user-filter-btn.active {
+            background-color: #4f46e5;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Skeleton Loader */
+        .skeleton {
+            background-color: #e2e8f0;
+            border-radius: 0.5rem;
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Modal Transitions */
+        .modal-content { transition: all 0.2s ease-out; }
+        .modal.hidden .modal-content { transform: scale(0.95); opacity: 0; }
+        
+        /* Responsive Table Fixes */
+         @media (max-width: 768px) {
+            main.ml-64 { margin-left: 0; }
+            nav.w-64 { transform: translateX(-100%); }
+            body.sidebar-open nav.w-64 { transform: translateX(0); }
+            .responsive-table thead { display: none; }
+            .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; overflow: hidden; }
+            .responsive-table td { display: flex; justify-content: space-between; align-items: center; text-align: right; padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; }
+            .responsive-table td:last-child { border-bottom: none; }
+            .responsive-table td::before { content: attr(data-label); font-weight: 600; text-align: left; margin-right: 1rem; }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <nav class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-20 flex flex-col transition-transform">
+        <div class="px-6 py-4 border-b border-slate-200">
+            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">AnonyChat Pro</h1>
+            <p class="text-xs text-slate-400">Admin Panel</p>
+        </div>
+        <div class="flex-grow p-4 space-y-2">
+            <a href="#" onclick="changeMainTab('dashboard')" class="sidebar-link active flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-tachometer-alt w-5 text-center text-slate-400"></i><span>Dasbor</span>
+            </a>
+            <a href="#" onclick="changeMainTab('users')" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-users w-5 text-center text-slate-400"></i><span>Manajemen User</span>
+            </a>
+            <a href="#" onclick="changeMainTab('moderation')" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-shield-halved w-5 text-center text-slate-400"></i><span>Moderasi</span>
+            </a>
+            <a href="#" onclick="changeMainTab('broadcast-log')" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-list-check w-5 text-center text-slate-400"></i><span>Log Broadcast</span>
+            </a>
+            <a href="#" onclick="changeMainTab('analytics')" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-chart-line w-5 text-center text-slate-400"></i><span>Analitik</span>
+            </a>
+            <a href="#" onclick="changeMainTab('settings')" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-gears w-5 text-center text-slate-400"></i><span>Pengaturan</span>
+            </a>
+        </div>
+        <div class="p-4 border-t border-slate-200">
+            <div id="status-text" class="text-center text-xs text-slate-500"></div>
+        </div>
+    </nav>
+
+    <main class="ml-0 md:ml-64 p-4 sm:p-6 lg:p-8 transition-all">
+        <header class="md:hidden flex justify-between items-center mb-4">
+             <h2 class="text-xl font-bold" id="mobile-header-title">Dasbor</h2>
+             <button id="mobile-menu-toggle" class="p-2 text-slate-600">
+                 <i class="fa-solid fa-bars text-xl"></i>
+             </button>
+        </header>
+
+        <div id="dashboard-content" class="main-tab-content space-y-6">
+            <div id="key-metrics-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="skeleton h-28"></div><div class="skeleton h-28"></div><div class="skeleton h-28"></div><div class="skeleton h-28"></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-md"><h3 class="flex items-center gap-2 text-lg font-bold text-slate-700 mb-4"><i class="fa-solid fa-power-off"></i><span>Status Bot</span></h3><div id="bot-status-interactive"><div class="skeleton h-32"></div></div></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md"><h3 class="flex items-center gap-2 text-lg font-bold text-slate-700 mb-4"><i class="fa-solid fa-bullhorn"></i><span>Kirim Broadcast</span></h3>
+                        <form id="broadcast-form" class="space-y-4">
+                            <textarea id="broadcast-message" rows="4" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="Ketik pesan broadcast... (opsional)"></textarea>
+                            <div>
+                                <label for="broadcast-image" class="block text-sm font-medium mb-1">Upload Gambar (Opsional)</label>
+                                <input type="file" id="broadcast-image" name="image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                            </div>
+                            <button type="submit" id="send-broadcast-btn" class="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition-transform hover:scale-105 active:scale-100 disabled:bg-slate-500 disabled:hover:scale-100">
+                                <i class="fa-solid fa-paper-plane"></i><span>Kirim Broadcast</span>
+                            </button>
+                            <p id="broadcast-status" class="text-center text-sm text-slate-500 h-4"></p>
+                        </form>
+                    </div>
+                </div>
+                <div id="anon-status-section" class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md"><div class="h-full w-full skeleton"></div></div>
+            </div>
+        </div>
+
+        <div id="users-content" class="main-tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white p-5 rounded-2xl shadow-md flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-blue-100"><i class="fa-solid fa-users text-xl text-blue-600"></i></div>
+                    <div><p class="text-sm text-slate-500">Total Pengguna</p><p id="total-users-stat" class="text-2xl font-bold text-slate-700">0</p></div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-md flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-red-100"><i class="fa-solid fa-user-lock text-xl text-red-600"></i></div>
+                    <div><p class="text-sm text-slate-500">Total Dibanned</p><p id="banned-users-stat" class="text-2xl font-bold text-slate-700">0</p></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-md">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                    <h2 class="text-xl font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-users-cog"></i><span>Daftar Pengguna</span></h2>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="flex items-center bg-slate-100 rounded-lg p-1">
+                            <button onclick="filterUsers('all')" class="user-filter-btn active text-sm px-3 py-1 rounded-md transition-colors">Semua</button>
+                            <button onclick="filterUsers('banned')" class="user-filter-btn text-sm px-3 py-1 rounded-md transition-colors">Dibanned</button>
+                        </div>
+                        <div class="relative w-full sm:w-auto">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="user-search" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 pl-9 text-sm" placeholder="Cari pengguna...">
+                        </div>
+                    </div>
+                </div>
+                <div id="user-table-container"><div class="skeleton h-64 w-full"></div></div>
+            </div>
+        </div>
+        
+        <div id="moderation-content" class="main-tab-content hidden"><div class="bg-white p-6 rounded-2xl shadow-md"><h2 class="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-gavel"></i><span>Log Pelanggaran</span></h2><div id="violations-table-container"><div class="skeleton h-64 w-full"></div></div></div></div>
+
+        <div id="broadcast-log-content" class="main-tab-content hidden"><div class="bg-white p-6 rounded-2xl shadow-md"><h2 class="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-list-check"></i><span>Log Broadcast</span></h2><div id="broadcast-log-container"><div class="skeleton h-64 w-full"></div></div></div></div>
+
+        <div id="analytics-content" class="main-tab-content hidden space-y-6"><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white p-6 rounded-2xl shadow-md"><h3 class="text-lg font-bold mb-4">📈 Pertumbuhan Pengguna</h3><canvas id="user-growth-chart"></canvas></div><div class="bg-white p-6 rounded-2xl shadow-md"><h3 class="text-lg font-bold mb-4">🕒 Jam Sibuk</h3><canvas id="peak-hours-chart"></canvas></div></div><div class="bg-white p-6 rounded-2xl shadow-md"><h3 class="text-lg font-bold mb-4">⚠️ Tipe Pelanggaran</h3><div class="max-w-sm mx-auto"><canvas id="violation-types-chart"></canvas></div></div></div>
+
+        <div id="settings-content" class="main-tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-md"><h2 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i><span>Pengaturan Umum</span></h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between"><div class="pr-4"><h3 class="font-semibold">Mode Perbaikan</h3><p class="text-sm text-slate-500">Jika aktif, bot akan menolak chat baru (kecuali admin).</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="maintenance-toggle" class="sr-only peer"><div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></label></div>
+                    <div class="border-t border-slate-200 my-4"></div>
+                    <div class="flex items-center justify-between"><div class="pr-4"><h3 class="font-semibold">Mode Pengembangan</h3><p class="text-sm text-slate-500">Jika aktif, bot hanya merespon nomor developer.</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="development-toggle" class="sr-only peer"><div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></label></div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-md"><h2 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-envelope-open-text"></i><span>Editor Pesan Otomatis</span></h2><form id="messages-form" class="space-y-4"><div><label for="welcome-message" class="block text-sm font-medium mb-1">Pesan Selamat Datang</label><textarea id="welcome-message" rows="6" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg p-2"></textarea></div><div><label for="menu-message" class="block text-sm font-medium mb-1">Pesan Menu</label><textarea id="menu-message" rows="10" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg p-2"></textarea></div><div><label for="development-message" class="block text-sm font-medium mb-1">Pesan Mode Pengembangan</label><textarea id="development-message" rows="4" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg p-2"></textarea></div><button type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Simpan Pesan</button></form></div>
+            <div class="bg-white p-6 rounded-2xl shadow-md"><h2 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-filter-circle-xmark"></i><span>Filter Kata Terlarang</span></h2><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><form id="add-badword-form" class="flex gap-2"><input type="text" id="new-badword" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm" placeholder="Tambah kata baru..."><button type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Tambah</button></form></div><div><p class="font-medium mb-2">Daftar Kata:</p><div id="badwords-list" class="h-40 overflow-y-auto bg-slate-50 p-2 border border-slate-300 rounded-lg space-y-1"></div></div></div></div>
+        </div>
+    </main>
+    
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" preload="auto"></audio>
+    <div id="chat-modal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4 backdrop-blur-sm"><div class="bg-white rounded-lg shadow-xl w-full sm:w-11/12 md:w-1/2 max-h-[80vh] flex flex-col modal-content"><div class="p-4 border-b border-slate-200 flex justify-between items-center"><h2 class="text-xl font-bold" id="modal-room-id"></h2><button onclick="closeModal('chat-modal')" class="text-3xl">&times;</button></div><div class="p-4 overflow-y-auto" id="modal-chat-content"></div></div></div>
+    <div id="user-detail-modal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4 backdrop-blur-sm"><div class="bg-white rounded-lg shadow-xl w-full sm:w-11/12 md:w-1/2 max-h-[80vh] flex flex-col modal-content"><div class="p-4 border-b border-slate-200 flex justify-between items-center"><h2 class="text-xl font-bold" id="user-detail-name"></h2><button onclick="closeModal('user-detail-modal')" class="text-3xl">&times;</button></div><div class="p-4 overflow-y-auto" id="user-detail-content"></div></div></div>
+
+<script>
+    const updateInterval = 1000;
+    let cachedData = {};
+    let charts = {};
+    let currentUserFilter = 'all'; // Variabel untuk menyimpan filter user saat ini
+    const notificationSound = document.getElementById('notification-sound');
+    
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+
+    function showSwalToast(message, icon = 'success') {
+        Toast.fire({ icon: icon, title: message });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateAllData();
+        setInterval(updateAllData, updateInterval);
+        setupEventListeners();
+    });
+
+    function changeMainTab(tabName) {
+        document.querySelectorAll('.main-tab-content').forEach(tab => tab.classList.add('hidden'));
+        document.querySelectorAll('.sidebar-link').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`${tabName}-content`).classList.remove('hidden');
+        const link = document.querySelector(`a[onclick="changeMainTab('${tabName}')"]`);
+        link.classList.add('active');
+        document.getElementById('mobile-header-title').textContent = link.querySelector('span').textContent;
+        document.body.classList.remove('sidebar-open');
+    }
+
+    function setupEventListeners() {
+        document.getElementById('mobile-menu-toggle').addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-open');
+        });
+        document.getElementById('user-search').addEventListener('input', () => renderUserTable(cachedData.users || []));
+        
+        document.getElementById('broadcast-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('send-broadcast-btn'), statusEl = document.getElementById('broadcast-status'), message = document.getElementById('broadcast-message').value, imageFile = document.getElementById('broadcast-image').files[0];
+            if (!message && !imageFile) { showSwalToast('Teks atau gambar tidak boleh kosong', 'error'); return; }
+            btn.disabled = true; statusEl.textContent = 'Mengirim...';
+            const formData = new FormData();
+            formData.append('message', message);
+            if (imageFile) { formData.append('image', imageFile); }
+            try {
+                const response = await fetch('/api/broadcast', { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Gagal mengirim broadcast');
+                statusEl.textContent = 'Broadcast dimulai!'; showSwalToast('Broadcast mulai dikirim di background.');
+                document.getElementById('broadcast-form').reset();
+            } catch (err) {
+                statusEl.textContent = 'Gagal mengirim.'; showSwalToast('Gagal mengirim broadcast.', 'error');
+            } finally {
+                btn.disabled = false; setTimeout(() => statusEl.textContent = '', 3000);
+            }
+        });
+
+        document.getElementById('maintenance-toggle').addEventListener('change', async (e) => {
+            await fetch('/api/settings/maintenance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: e.target.checked }) });
+            showSwalToast(`Mode perbaikan ${e.target.checked ? 'diaktifkan' : 'dinonaktifkan'}.`);
+        });
+
+        document.getElementById('development-toggle').addEventListener('change', async (e) => {
+            await fetch('/api/settings/development', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: e.target.checked }) });
+            showSwalToast(`Mode pengembangan ${e.target.checked ? 'diaktifkan' : 'dinonaktifkan'}.`);
+        });
+
+        document.getElementById('messages-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await fetch('/api/settings/messages', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    welcome: document.getElementById('welcome-message').value, 
+                    menu: document.getElementById('menu-message').value,
+                    development: document.getElementById('development-message').value
+                }) 
+            });
+            showSwalToast('Pesan berhasil disimpan!');
+        });
+
+        document.getElementById('add-badword-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('new-badword'), word = input.value.trim();
+            if(!word) return;
+            await fetch('/api/settings/badwords', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ word }) });
+            input.value = ''; showSwalToast(`Kata "${word}" ditambahkan.`); updateAllData();
+        });
+    }
+
+    async function updateAllData() {
+        try {
+            const response = await fetch('/api/status');
+            if (!response.ok) throw new Error('Gagal mengambil data dari server.');
+            const data = await response.json();
+            if (cachedData.violations && data.violations.length > cachedData.violations.length) {
+                notificationSound.play().catch(e => console.log("Notifikasi audio diblokir."));
+            }
+            cachedData = data;
+            renderAllComponents(data);
+        } catch (error) {
+            console.error("Update Gagal:", error);
+            document.getElementById('status-text').textContent = "Gagal memuat data.";
+            renderBotStatus('DISCONNECTED', '');
+        }
+    }
+
+    function renderAllComponents(data) {
+        renderKeyMetrics(data.metrics);
+        renderAnonStatus(data.anonChat);
+        renderUserStats(data.metrics); // Panggil fungsi render stats
+        renderUserTable(data.users);
+        renderViolationTable(data.violations);
+        renderBroadcastLog(data.broadcastLog);
+        renderAnalyticsCharts(data.analytics);
+        renderSettings(data.settings);
+        renderBotStatus(data.botStatus, data.qrCode);
+        document.getElementById('status-text').textContent = `Diperbarui: ${new Date().toLocaleTimeString('id-ID')}`;
+    }
+
+    function renderBotStatus(status, qrCode) {
+        const container = document.getElementById('bot-status-interactive');
+        let content = '';
+        if (status === 'CONNECTED') {
+            content = `<div class="flex flex-col items-center text-center p-4 bg-green-100 rounded-lg"><i class="fa-solid fa-check-circle text-4xl text-green-500 mb-2"></i><p class="font-bold text-lg text-green-700">Terhubung</p><p class="text-xs text-slate-500">Bot sedang berjalan normal.</p></div>`;
+        } else if (status === 'WAITING_FOR_QR_SCAN') {
+            content = `<div class="text-center"><p class="font-semibold text-yellow-600 mb-3">Scan QR untuk Login</p><img id="qr-code-image" src="${qrCode}" alt="QR Code" class="mx-auto w-full max-w-[200px] rounded-lg border-4 border-slate-300 p-1"></div>`;
+        } else {
+            const color = status === 'DISCONNECTED' ? 'red' : 'gray';
+            const text = status === 'DISCONNECTED' ? 'Terputus' : 'Inisialisasi...';
+            content = `<div class="flex flex-col items-center text-center p-4 bg-${color}-100 rounded-lg"><i class="fa-solid fa-exclamation-triangle text-4xl text-${color}-500 mb-2"></i><p class="font-bold text-lg text-${color}-700">${text}</p><p class="text-xs text-slate-500">Cek konsol untuk detail.</p></div>`;
+        }
+        container.innerHTML = content;
+    }
+
+    function renderKeyMetrics(metrics) {
+        if (!metrics) return;
+        const container = document.getElementById('key-metrics-container');
+        const iconClasses = ["fa-users", "fa-user-clock", "fa-comments", "fa-user-slash"];
+        const titles = ["Total Pengguna", "Aktif Hari Ini", "Total Chat (24j)", "User Diblokir"];
+        const data = [metrics.totalUsers, metrics.activeToday, metrics.totalChats24h, metrics.banned];
+        container.innerHTML = data.map((value, index) => `<div class="bg-white p-5 rounded-2xl shadow-md flex items-center gap-4"><div class="p-3 rounded-full bg-indigo-100"><i class="fa-solid ${iconClasses[index]} text-xl text-indigo-600"></i></div><div><p class="text-sm text-slate-500">${titles[index]}</p><p class="text-2xl font-bold text-slate-700">${value || 0}</p></div></div>`).join('');
+    }
+
+    function renderAnonStatus(data) {
+        if (!data) return;
+        const container = document.getElementById('anon-status-section');
+        container.innerHTML = `<h3 class="flex items-center gap-2 text-lg font-bold text-slate-700 mb-4"><i class="fa-solid fa-user-secret"></i><span>Status Anonymous Chat</span></h3><div class="grid md:grid-cols-2 gap-6 mt-4"><div><h4 class="font-bold mb-2">👥 Menunggu Partner (${data.waiting.length})</h4><div class="h-48 overflow-y-auto bg-slate-50 p-3 rounded-lg border border-slate-200">${data.waiting.length > 0 ? data.waiting.map(u => `<div class="text-sm p-1">- ${u.nickname}</div>`).join('') : '<div class="text-slate-500 text-sm flex items-center justify-center h-full">Tidak ada yang menunggu...</div>'}</div></div><div><h4 class="font-bold mb-2">💬 Room Aktif (${data.active.length})</h4><div class="h-48 overflow-y-auto bg-slate-50 p-3 rounded-lg border border-slate-200">${data.active.length > 0 ? data.active.map(p => `<div class="text-sm p-1">- <a href="#" onclick="showChatLog('${p.roomId}')" class="text-indigo-600 hover:underline font-semibold">${p.roomId}</a>: ${p.user1} ↔ ${p.user2}</div>`).join('') : '<div class="text-slate-500 text-sm flex items-center justify-center h-full">Tidak ada room aktif...</div>'}</div></div></div>`;
+    }
+
+    function renderUserStats(metrics) {
+        if (!metrics) return;
+        document.getElementById('total-users-stat').textContent = metrics.totalUsers || 0;
+        document.getElementById('banned-users-stat').textContent = metrics.banned || 0;
+    }
+    
+    function filterUsers(filter) {
+        currentUserFilter = filter;
+        document.querySelectorAll('.user-filter-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.user-filter-btn[onclick="filterUsers('${filter}')"]`).classList.add('active');
+        renderUserTable(cachedData.users || []);
+    }
+
+    function renderUserTable(users) {
+        const container = document.getElementById('user-table-container');
+        if (!users) return;
+        const searchTerm = document.getElementById('user-search').value.toLowerCase();
+        
+        let filteredUsers = users;
+        if (currentUserFilter === 'banned') {
+            filteredUsers = users.filter(user => user.isBanned);
+        }
+        if (searchTerm) {
+            filteredUsers = filteredUsers.filter(user => user.nickname.toLowerCase().includes(searchTerm) || user.id.toLowerCase().includes(searchTerm));
+        }
+
+        let tableHTML = `<div class="overflow-x-auto"><table class="w-full text-sm text-left responsive-table"><thead class="text-xs uppercase bg-slate-50"><tr><th class="px-6 py-3">Nickname</th><th class="px-6 py-3">Status</th><th class="px-6 py-3 text-center">Aksi</th></tr></thead><tbody>`;
+        if (filteredUsers.length === 0) {
+            tableHTML += `<tr><td colspan="3" class="text-center py-8 text-slate-500">Tidak ada pengguna yang cocok dengan filter.</td></tr>`;
+        } else {
+            filteredUsers.forEach(user => {
+                const isBannedClass = user.isBanned ? 'bg-rose-50/50' : '';
+                const statusBadge = user.isBanned ? `<span class="px-2 py-1 text-xs font-semibold text-white bg-rose-500 rounded-full">Banned</span>` : `<span class="px-2 py-1 text-xs font-semibold text-white bg-teal-500 rounded-full">Aktif</span>`;
+                tableHTML += `<tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors ${isBannedClass}"><td data-label="Nickname" class="px-6 py-4 font-medium text-slate-900">${user.nickname}<span class="text-slate-500 text-xs block">${user.id.split('@')[0]}</span></td><td data-label="Status" class="px-6 py-4">${statusBadge}</td><td data-label="Aksi" class="px-6 py-4"><div class="flex items-center justify-center md:justify-end gap-2"><button onclick="showUserDetail('${user.id}')" class="text-xs p-2 rounded-md bg-sky-100 text-sky-600 hover:bg-sky-200">Detail</button><button onclick="warnUser('${user.id}')" class="text-xs p-2 rounded-md bg-amber-100 text-amber-600 hover:bg-amber-200">Peringatan</button><form action="/toggle-ban" method="POST" class="contents"><input type="hidden" name="userId" value="${user.id}"><button type="submit" class="text-xs p-2 rounded-md ${user.isBanned ? 'bg-green-100 text-green-600' : 'bg-rose-100 text-rose-600'}">${user.isBanned ? 'Unban' : 'Ban'}</button></form></div></td></tr>`;
+            });
+        }
+        tableHTML += `</tbody></table></div>`;
+        container.innerHTML = tableHTML;
+    }
+
+    function renderViolationTable(violations) {
+        if (!violations) return;
+        const container = document.getElementById('violations-table-container');
+        let tableHTML = `<div class="overflow-x-auto"><table class="w-full text-sm text-left responsive-table"><thead class="text-xs uppercase bg-slate-50"><tr><th class="px-6 py-3">Waktu</th><th class="px-6 py-3">Tipe</th><th class="px-6 py-3">Pelaku/Pelapor</th><th class="px-6 py-3">Detail</th></tr></thead><tbody>`;
+        violations.slice().reverse().forEach((v) => {
+            let reporterInfo = v.type === 'Laporan Pengguna' ? `<div class="font-bold text-rose-500">Pelapor: ${v.reporter.nickname}</div><div class="text-slate-500">Terlapor: ${v.reported.nickname}</div>` : `<div class="font-bold">${v.nickname}</div>`;
+            let detailInfo = v.type === 'Laporan Pengguna' ? `<button onclick="showChatLog('${v.roomId}', '${v.reported.id}')" class="text-indigo-600 hover:underline">Lihat Chat</button>` : `<span class="text-rose-600">${v.message}</span>`;
+            tableHTML += `<tr class="border-b border-slate-200 hover:bg-slate-50"><td data-label="Waktu" class="px-6 py-4 whitespace-nowrap">${v.timestamp}</td><td data-label="Tipe" class="px-6 py-4 font-semibold">${v.type}</td><td data-label="Pelaku/Pelapor" class="px-6 py-4">${reporterInfo}</td><td data-label="Detail" class="px-6 py-4">${detailInfo}</td></tr>`;
+        });
+        tableHTML += `</tbody></table></div>`;
+        container.innerHTML = tableHTML;
+    }
+
+    function renderBroadcastLog(logs) {
+        if (!logs) return;
+        const container = document.getElementById('broadcast-log-container');
+        let tableHTML = `<div class="overflow-x-auto"><table class="w-full text-sm text-left responsive-table"><thead class="text-xs uppercase bg-slate-50"><tr><th class="px-6 py-3">Waktu</th><th class="px-6 py-3">Pesan</th><th class="px-6 py-3">Gambar</th><th class="px-6 py-3">Penerima</th></tr></thead><tbody>`;
+        logs.slice().reverse().forEach((log) => {
+            const messagePreview = (log.message || '').substring(0, 50) + ( (log.message || '').length > 50 ? '...' : '' );
+            const imageInfo = log.image ? `<i class="fa-solid fa-check text-green-500"></i>` : '-';
+            tableHTML += `<tr class="border-b border-slate-200 hover:bg-slate-50"><td data-label="Waktu" class="px-6 py-4 whitespace-nowrap">${new Date(log.timestamp).toLocaleString('id-ID')}</td><td data-label="Pesan" class="px-6 py-4">${messagePreview}</td><td data-label="Gambar" class="px-6 py-4">${imageInfo}</td><td data-label="Penerima" class="px-6 py-4">${log.sentTo}</td></tr>`;
+        });
+        tableHTML += `</tbody></table></div>`;
+        container.innerHTML = tableHTML;
+    }
+
+    function renderAnalyticsCharts(analytics) {
+        if (!analytics) return;
+        Object.values(charts).forEach(chart => chart.destroy());
+        const textColor = '#475569', gridColor = '#e2e8f0';
+        const chartOptions = { plugins: { legend: { labels: { color: textColor } } }, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } } };
+        charts.userGrowth = new Chart(document.getElementById('user-growth-chart').getContext('2d'), { type: 'line', data: { labels: analytics.userGrowth.labels, datasets: [{ label: 'Pengguna Baru', data: analytics.userGrowth.data, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.2)', fill: true, tension: 0.1 }] }, options: chartOptions });
+        charts.peakHours = new Chart(document.getElementById('peak-hours-chart').getContext('2d'), { type: 'bar', data: { labels: analytics.peakHours.labels, datasets: [{ label: 'Jumlah Chat', data: analytics.peakHours.data, backgroundColor: '#818cf8' }] }, options: chartOptions });
+        charts.violationTypes = new Chart(document.getElementById('violation-types-chart').getContext('2d'), { type: 'doughnut', data: { labels: analytics.violationTypes.labels, datasets: [{ data: analytics.violationTypes.data, backgroundColor: ['#ef4444', '#f97316', '#eab308'], hoverOffset: 4 }] }, options: { plugins: { legend: { labels: { color: textColor } } }} });
+    }
+
+    function renderSettings(settings) {
+        if(!settings) return;
+        document.getElementById('maintenance-toggle').checked = settings.maintenanceMode;
+        document.getElementById('development-toggle').checked = settings.developmentMode;
+        document.getElementById('welcome-message').value = settings.messages.welcome;
+        document.getElementById('menu-message').value = settings.messages.menu;
+        document.getElementById('development-message').value = settings.messages.development;
+        const listContainer = document.getElementById('badwords-list');
+        listContainer.innerHTML = settings.badwords.map(word => `<div class="flex justify-between items-center bg-slate-200 p-2 rounded text-sm"><span>${word}</span><button onclick="deleteBadword('${word}')" class="text-red-500 font-bold hover:text-red-700">×</button></div>`).join('');
+    }
+
+    async function deleteBadword(word) {
+        const result = await Swal.fire({ title: 'Anda Yakin?', text: `Ingin menghapus kata "${word}"? Aksi ini tidak dapat dibatalkan.`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal' });
+        if (result.isConfirmed) {
+            await fetch('/api/settings/badwords', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ word }) });
+            Swal.fire('Dihapus!', `Kata "${word}" telah dihapus.`, 'success');
+            updateAllData();
+        }
+    }
+    
+    async function warnUser(userId) {
+        const result = await Swal.fire({ title: 'Kirim Peringatan?', text: "Pengguna akan menerima notifikasi peringatan dari admin.", icon: 'question', showCancelButton: true, confirmButtonColor: '#f59e0b', cancelButtonColor: '#6b7280', confirmButtonText: 'Ya, Kirim!', cancelButtonText: 'Batal' });
+        if (result.isConfirmed) {
+            await fetch('/api/warn-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId }) });
+            Swal.fire('Terkirim!', 'Peringatan telah dikirim ke pengguna.', 'success');
+        }
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    async function showChatLog(roomId, highlightedUserId = null) {
+        const modal = document.getElementById('chat-modal');
+        const contentEl = document.getElementById('modal-chat-content');
+        document.getElementById('modal-room-id').textContent = `Log Chat: ${roomId}`;
+        modal.classList.remove('hidden');
+        contentEl.innerHTML = '<div class="skeleton h-48 w-full"></div>';
+        try {
+            const response = await fetch(`/api/chat-log/${roomId}`);
+            const logs = await response.json();
+            if(!logs || logs.length === 0) { contentEl.innerHTML = 'Log chat tidak ditemukan atau kosong.'; return; }
+            contentEl.innerHTML = logs.map(log => {
+                const isReported = highlightedUserId && log.senderId === highlightedUserId;
+                const alignment = log.isSender1 ? 'text-left' : 'text-right';
+                const bgColor = isReported ? 'bg-rose-100' : 'bg-slate-100';
+                return `<div class="mb-2 ${alignment}"><div class="inline-block p-2 rounded-lg ${bgColor}"><div class="font-bold text-sm">${log.senderNickname}</div><div>${log.message}</div><div class="text-xs text-slate-500 mt-1">${log.timestamp}</div></div></div>`;
+            }).join('');
+        } catch(err) {
+            contentEl.innerHTML = 'Gagal memuat log chat.';
+        }
+    }
+
+    async function showUserDetail(userId) {
+        const modal = document.getElementById('user-detail-modal');
+        const contentEl = document.getElementById('user-detail-content');
+        modal.classList.remove('hidden');
+        contentEl.innerHTML = '<div class="skeleton h-32 w-full"></div>';
+        try {
+            const response = await fetch(`/api/user-detail/${userId}`);
+            const data = await response.json();
+            const user = data.user;
+            document.getElementById('user-detail-name').textContent = user.nickname;
+            contentEl.innerHTML = `<div class="space-y-3 text-sm"><p><strong>ID:</strong><br><span class="text-xs text-slate-500">${user.id}</span></p><p><strong>Status:</strong> ${user.isBanned ? '<span class="text-rose-500 font-semibold">Banned</span>' : '<span class="text-green-500 font-semibold">Aktif</span>'}</p><p><strong>Jumlah Peringatan:</strong> ${user.warnings || 0}</p><p><strong>Bergabung Pada:</strong><br>${new Date(user.joinDate).toLocaleString('id-ID')}</p><p><strong>Terakhir Aktif:</strong><br>${new Date(user.lastActive).toLocaleString('id-ID')}</p></div>`;
+        } catch(err) {
+            contentEl.innerHTML = 'Gagal memuat detail pengguna.';
+        }
+    }
+</script>
+</body>
+</html>
